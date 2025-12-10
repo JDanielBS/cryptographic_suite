@@ -1,0 +1,9 @@
+# Librerías para Criptografía
+cryptography>=41.0.0
+pycryptodome>=3.19.0
+
+# Librerías para SQL Injection Demo
+mysql-connector-python>=8.2.0
+
+# Utilidades adicionales
+colorama>=0.4.6
