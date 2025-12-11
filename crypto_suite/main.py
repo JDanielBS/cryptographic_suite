@@ -15,6 +15,9 @@ import os
 # Agregar el directorio padre al path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Importar UIs desde la nueva estructura
+from ui.message_digest_ui import MessageDigestUI
+
 
 class CryptoSuiteHome:
     """Pantalla principal de la Suite Criptográfica"""
@@ -340,13 +343,11 @@ class CryptoSuiteHome:
     def open_module(self, module_id):
         """Abrir el módulo seleccionado"""
         if module_id == '1a':
-            # Importar y abrir el módulo de Message Digest
+            # Importar y abrir el módulo de Message Digest (nueva estructura)
             try:
-                from modules.message_digest_module import MessageDigestModule
-                
                 # Crear nueva ventana
                 module_window = tk.Toplevel(self.root)
-                MessageDigestModule(module_window)
+                MessageDigestUI(module_window)
                 
             except ImportError as e:
                 print(f"Error al importar módulo: {e}")
