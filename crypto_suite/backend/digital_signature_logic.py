@@ -191,19 +191,15 @@ class DigitalSignatureLogic:
     
     def sign_message_textbook(self, message: str, hash_algorithm: str = 'SHA256') -> Dict[str, str]:
         """
-        Firmar usando RSA textbook (matemática pura) como en los ejemplos académicos.
+        Firmar usando RSA textbook (matemática pura) para fines educativos.
         
-        Este método implementa el RSA "textbook" sin padding, tal como se enseña
-        en los cursos de criptografía para demostrar la matemática subyacente.
+        ⚠️ SOLO USO EDUCATIVO ⚠️
+        Implementa RSA sin padding para demostrar la matemática subyacente.
         
-        VULNERABILIDADES:
-        - Sin padding: Vulnerable a diversos ataques
-        - Determinístico: Misma firma para mismo mensaje
-        - No cumple estándares de seguridad modernos
-        
-        Implementación según ejemplo del profesor:
-        hash = int.from_bytes(sha512(msg).digest(), byteorder='big')
-        signature = pow(hash, keyPair.d, keyPair.n)
+        Vulnerabilidades:
+        - Sin padding: vulnerable a ataques
+        - Determinístico
+        - No cumple estándares modernos
         
         Args:
             message: Mensaje a firmar
@@ -325,15 +321,9 @@ class DigitalSignatureLogic:
     
     def verify_signature_textbook(self, message: str, signature_base64: str, hash_algorithm: str = 'SHA256') -> Dict[str, any]:
         """
-        [ EDUCATIVO ÚNICAMENTE - NO USAR EN PRODUCCIÓN ]
-        Verificar firma usando RSA textbook (matemática pura).
+        Verificar firma RSA textbook.
         
-        Este método implementa la verificación de RSA "textbook" sin padding,
-        correspondiente al método sign_message_textbook.
-        
-        Implementación según ejemplo del profesor:
-        hashFromSignature = pow(signature, keyPair.e, keyPair.n)
-        valid = (hash == hashFromSignature)
+        ⚠️ SOLO USO EDUCATIVO ⚠️
         
         Args:
             message: Mensaje original

@@ -462,10 +462,9 @@ class EncryptionLogic:
     
     def encrypt_des_ecb(self, plaintext: str, key: str) -> Dict:
         """
-        [⚠️ EDUCATIVO - INSEGURO]
-        Cifrar con DES en modo ECB (como el profesor).
+        Cifrar con DES en modo ECB.
         
-        DES-ECB es inseguro: patrones repetidos, sin IV, clave corta (56 bits).
+        ⚠️ INSEGURO - Solo fines educativos
         
         Args:
             plaintext: Texto a cifrar (debe ser múltiplo de 8 bytes)
@@ -702,10 +701,9 @@ class EncryptionLogic:
     
     def encrypt_arc4(self, plaintext: str, key: str) -> Dict:
         """
-        [⚠️ EDUCATIVO - VULNERABLE]
-        Cifrar con ARC4 (RC4) - Stream cipher.
+        Cifrar con ARC4 (RC4).
         
-        RC4 es vulnerable y obsoleto. Solo para demostración educativa.
+        ⚠️ VULNERABLE - Solo fines educativos
         
         Args:
             plaintext: Texto a cifrar
@@ -771,18 +769,13 @@ class EncryptionLogic:
     
     def encrypt_hybrid(self, plaintext: str) -> Dict:
         """
-        Cifrado híbrido: RSA-OAEP para clave de sesión + AES-GCM para datos.
-        Igual que el ejemplo del profesor con PKCS1_OAEP.
+        Cifrado híbrido: RSA-OAEP + AES-GCM.
         
         Args:
             plaintext: Texto a cifrar
             
         Returns:
-            Dict con:
-                - encrypted_session_key_base64: Clave de sesión cifrada con RSA
-                - ciphertext_base64: Datos cifrados con AES
-                - nonce_base64: Nonce de AES-GCM
-                - tag_base64: Tag de autenticación AES-GCM
+            Dict con clave de sesión cifrada, ciphertext, nonce y tag
         """
         if not self.public_key:
             raise ValueError("No hay clave pública cargada para cifrado híbrido")
@@ -791,7 +784,7 @@ class EncryptionLogic:
             # Generar clave de sesión AES-256 aleatoria
             session_key = os.urandom(32)  # 256 bits
             
-            # Cifrar la clave de sesión con RSA-OAEP (como el profesor)
+            # Cifrar la clave de sesión con RSA-OAEP
             encrypted_session_key = self.public_key.encrypt(
                 session_key,
                 padding.OAEP(
@@ -801,7 +794,7 @@ class EncryptionLogic:
                 )
             )
             
-            # Cifrar los datos con AES-GCM (más seguro que EAX del profesor)
+            # Cifrar los datos con AES-GCM
             nonce = os.urandom(12)  # 96 bits recomendado para GCM
             cipher = Cipher(
                 algorithms.AES(session_key),

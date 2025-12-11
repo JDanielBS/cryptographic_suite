@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui.message_digest_ui import MessageDigestUI
 from ui.digital_signature_ui import DigitalSignatureUI
 from ui.encryption_ui import EncryptionUI
+from ui.elliptic_curves_ui import EllipticCurvesUI
 
 
 class CryptoSuiteHome:
@@ -169,9 +170,9 @@ class CryptoSuiteHome:
                 'id': '1e',
                 'title': 'Curvas Elípticas',
                 'icon': '📈',
-                'description': 'Firma y verificación usando criptografía de curvas elípticas (ECC)',
+                'description': 'Firma y verificación con ECDSA (secp256k1/384r1/521r1) y Ed25519',
                 'color': self.colors['accent_cyan'],
-                'status': 'Próximamente'
+                'status': 'Implementado'
             },
             {
                 'id': '2',
@@ -376,6 +377,17 @@ class CryptoSuiteHome:
             except ImportError as e:
                 print(f"Error al importar módulo: {e}")
                 self.show_error_window("Cifrado RSA")
+        
+        elif module_id == '1e':
+            # Importar y abrir el módulo de Curvas Elípticas (nueva estructura)
+            try:
+                # Crear nueva ventana
+                module_window = tk.Toplevel(self.root)
+                EllipticCurvesUI(module_window)
+                
+            except ImportError as e:
+                print(f"Error al importar módulo: {e}")
+                self.show_error_window("Curvas Elípticas")
     
     def show_error_window(self, module_name):
         """Mostrar ventana de error al cargar módulo"""
