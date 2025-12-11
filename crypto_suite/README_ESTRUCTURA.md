@@ -110,7 +110,7 @@ print(result['digest_hex'])
 | Módulo | Estado | Backend | UI | Legacy |
 |--------|--------|---------|----|----|
 | **Message Digest** | ✅ Migrado | `backend/message_digest_logic.py` | `ui/message_digest_ui.py` | `modules/message_digest_module.py` (obsoleto) |
-| **Firma Digital** | ⏳ Pendiente | - | - | `modules/digital_signature_module.py` |
+| **Firma Digital** | ✅ Migrado | `backend/digital_signature_logic.py` | `ui/digital_signature_ui.py` | `modules/digital_signature_module.py` (obsoleto) |
 | **Cifrado RSA** | ⏳ Pendiente | - | - | `modules/encryption_module.py` |
 | **Curvas Elípticas** | ❌ No iniciado | - | - | - |
 
@@ -120,7 +120,7 @@ print(result['digest_hex'])
 
 1. ✅ **Fase 1:** Crear estructura `backend/` y `ui/`
 2. ✅ **Fase 2:** Migrar Message Digest
-3. ⏳ **Fase 3:** Migrar Firma Digital
+3. ✅ **Fase 3:** Migrar Firma Digital
 4. ⏳ **Fase 4:** Migrar Cifrado RSA
 5. ⏳ **Fase 5:** Implementar Curvas Elípticas (nuevo)
 6. ⏳ **Fase 6:** Eliminar `modules/` legacy

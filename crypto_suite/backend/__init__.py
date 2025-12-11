@@ -4,5 +4,6 @@ Contiene toda la lógica de negocio (business logic) sin dependencias de UI.
 """
 
 from .message_digest_logic import MessageDigestLogic
+from .digital_signature_logic import DigitalSignatureLogic
 
-__all__ = ['MessageDigestLogic']
+__all__ = ['MessageDigestLogic', 'DigitalSignatureLogic']
