@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
 """
 Laboratorio de Programación Segura
-Backend: Encryption Logic (Punto 1c y 1d)
+Backend: Encryption Logic (Punto 1c, 1d y Cifrado Simétrico)
 
-Lógica pura de cifrado/descifrado RSA sin dependencias de UI.
-Implementa cifrado con clave privada (1c) y clave pública (1d).
+Lógica pura de cifrado/descifrado sin dependencias de UI.
+Implementa:
+- RSA: Cifrado con clave privada (1c) y clave pública (1d)
+- Simétrico: DES (ECB, CFB), AES (CBC), ARC4
+- Híbrido: RSA + AES (como ejemplo del profesor)
 """
 
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import base64
+import os
 from typing import Dict, Optional
 
 
 class EncryptionLogic:
     """
-    Lógica de cifrado y descifrado RSA.
+    Lógica de cifrado y descifrado RSA + Cifrado Simétrico.
     
-    Soporta dos modos:
-    - Cifrado con clave privada + Descifrado con clave pública (Punto 1c)
-    - Cifrado con clave pública + Descifrado con clave privada (Punto 1d - estándar)
+    Soporta múltiples modos:
+    - RSA: Cifrado con clave privada (1c) y clave pública (1d)
+    - Simétrico: DES (ECB, CFB), AES (CBC, CTR, GCM), ARC4
+    - Híbrido: RSA + AES (como en los ejemplos del profesor)
     """
     
     def __init__(self):
@@ -451,3 +457,418 @@ class EncryptionLogic:
         ).decode('utf-8')
         
         return private_pem
+    
+    # ==================== CIFRADO SIMÉTRICO (DES, AES, ARC4) ====================
+    
+    def encrypt_des_ecb(self, plaintext: str, key: str) -> Dict:
+        """
+        [⚠️ EDUCATIVO - INSEGURO]
+        Cifrar con DES en modo ECB (como el profesor).
+        
+        DES-ECB es inseguro: patrones repetidos, sin IV, clave corta (56 bits).
+        
+        Args:
+            plaintext: Texto a cifrar (debe ser múltiplo de 8 bytes)
+            key: Clave de 8 bytes exactos
+            
+        Returns:
+            Dict con ciphertext_base64, ciphertext_hex, method, warning
+        """
+        try:
+            if len(key) != 8:
+                raise ValueError("La clave DES debe tener exactamente 8 bytes")
+            
+            # Padding manual si es necesario
+            plaintext_bytes = plaintext.encode('utf-8')
+            padding_length = 8 - (len(plaintext_bytes) % 8)
+            if padding_length != 8:
+                plaintext_bytes += bytes([padding_length] * padding_length)
+            
+            cipher = Cipher(
+                algorithms.TripleDES(key.encode('utf-8')),  # Usar 3DES para compatibilidad
+                modes.ECB(),
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(plaintext_bytes) + encryptor.finalize()
+            
+            return {
+                'ciphertext_base64': base64.b64encode(ciphertext).decode('utf-8'),
+                'ciphertext_hex': ciphertext.hex(),
+                'method': 'DES-ECB',
+                'warning': '⚠️ INSEGURO - Solo para demostración educativa',
+                'note': 'Modo ECB expone patrones. Sin vector de inicialización.'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en cifrado DES-ECB: {str(e)}")
+    
+    def decrypt_des_ecb(self, ciphertext_base64: str, key: str) -> Dict:
+        """
+        Descifrar DES-ECB.
+        
+        Args:
+            ciphertext_base64: Texto cifrado en base64
+            key: Clave de 8 bytes
+            
+        Returns:
+            Dict con plaintext, method
+        """
+        try:
+            if len(key) != 8:
+                raise ValueError("La clave DES debe tener exactamente 8 bytes")
+            
+            ciphertext = base64.b64decode(ciphertext_base64)
+            
+            cipher = Cipher(
+                algorithms.TripleDES(key.encode('utf-8')),
+                modes.ECB(),
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            plaintext_padded = decryptor.update(ciphertext) + decryptor.finalize()
+            
+            # Quitar padding
+            padding_length = plaintext_padded[-1]
+            plaintext = plaintext_padded[:-padding_length].decode('utf-8')
+            
+            return {
+                'plaintext': plaintext,
+                'method': 'DES-ECB',
+                'message': 'Descifrado exitoso'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en descifrado DES-ECB: {str(e)}")
+    
+    def encrypt_des_cfb(self, plaintext: str, key: str, iv: bytes = None) -> Dict:
+        """
+        Cifrar con DES en modo CFB con IV (más seguro que ECB).
+        
+        Args:
+            plaintext: Texto a cifrar
+            key: Clave de 8 bytes
+            iv: Vector de inicialización de 8 bytes (se genera si no se provee)
+            
+        Returns:
+            Dict con ciphertext_base64, iv_base64, method
+        """
+        try:
+            if len(key) != 8:
+                raise ValueError("La clave DES debe tener exactamente 8 bytes")
+            
+            if iv is None:
+                iv = os.urandom(8)
+            elif len(iv) != 8:
+                raise ValueError("El IV debe tener exactamente 8 bytes")
+            
+            plaintext_bytes = plaintext.encode('utf-8')
+            
+            cipher = Cipher(
+                algorithms.TripleDES(key.encode('utf-8')),
+                modes.CFB(iv),
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(plaintext_bytes) + encryptor.finalize()
+            
+            return {
+                'ciphertext_base64': base64.b64encode(ciphertext).decode('utf-8'),
+                'iv_base64': base64.b64encode(iv).decode('utf-8'),
+                'iv_hex': iv.hex(),
+                'method': 'DES-CFB',
+                'note': 'Modo CFB con IV - Más seguro que ECB'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en cifrado DES-CFB: {str(e)}")
+    
+    def decrypt_des_cfb(self, ciphertext_base64: str, key: str, iv_base64: str) -> Dict:
+        """
+        Descifrar DES-CFB.
+        
+        Args:
+            ciphertext_base64: Texto cifrado en base64
+            key: Clave de 8 bytes
+            iv_base64: IV en base64
+            
+        Returns:
+            Dict con plaintext, method
+        """
+        try:
+            if len(key) != 8:
+                raise ValueError("La clave DES debe tener exactamente 8 bytes")
+            
+            ciphertext = base64.b64decode(ciphertext_base64)
+            iv = base64.b64decode(iv_base64)
+            
+            cipher = Cipher(
+                algorithms.TripleDES(key.encode('utf-8')),
+                modes.CFB(iv),
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            plaintext = (decryptor.update(ciphertext) + decryptor.finalize()).decode('utf-8')
+            
+            return {
+                'plaintext': plaintext,
+                'method': 'DES-CFB',
+                'message': 'Descifrado exitoso'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en descifrado DES-CFB: {str(e)}")
+    
+    def encrypt_aes_cbc(self, plaintext: str, key: str, iv: bytes = None) -> Dict:
+        """
+        Cifrar con AES en modo CBC (estándar moderno).
+        
+        Args:
+            plaintext: Texto a cifrar
+            key: Clave de 16, 24 o 32 bytes (AES-128/192/256)
+            iv: Vector de inicialización de 16 bytes
+            
+        Returns:
+            Dict con ciphertext_base64, iv_base64, method
+        """
+        try:
+            key_bytes = key.encode('utf-8')
+            if len(key_bytes) not in [16, 24, 32]:
+                raise ValueError("La clave AES debe tener 16, 24 o 32 bytes")
+            
+            if iv is None:
+                iv = os.urandom(16)
+            elif len(iv) != 16:
+                raise ValueError("El IV debe tener exactamente 16 bytes")
+            
+            # Padding PKCS7
+            plaintext_bytes = plaintext.encode('utf-8')
+            padding_length = 16 - (len(plaintext_bytes) % 16)
+            plaintext_bytes += bytes([padding_length] * padding_length)
+            
+            cipher = Cipher(
+                algorithms.AES(key_bytes),
+                modes.CBC(iv),
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(plaintext_bytes) + encryptor.finalize()
+            
+            return {
+                'ciphertext_base64': base64.b64encode(ciphertext).decode('utf-8'),
+                'iv_base64': base64.b64encode(iv).decode('utf-8'),
+                'iv_hex': iv.hex(),
+                'method': f'AES-{len(key_bytes)*8}-CBC',
+                'note': 'AES en modo CBC - Estándar de seguridad moderno'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en cifrado AES-CBC: {str(e)}")
+    
+    def decrypt_aes_cbc(self, ciphertext_base64: str, key: str, iv_base64: str) -> Dict:
+        """
+        Descifrar AES-CBC.
+        
+        Args:
+            ciphertext_base64: Texto cifrado en base64
+            key: Clave de 16, 24 o 32 bytes
+            iv_base64: IV en base64
+            
+        Returns:
+            Dict con plaintext, method
+        """
+        try:
+            key_bytes = key.encode('utf-8')
+            if len(key_bytes) not in [16, 24, 32]:
+                raise ValueError("La clave AES debe tener 16, 24 o 32 bytes")
+            
+            ciphertext = base64.b64decode(ciphertext_base64)
+            iv = base64.b64decode(iv_base64)
+            
+            cipher = Cipher(
+                algorithms.AES(key_bytes),
+                modes.CBC(iv),
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            plaintext_padded = decryptor.update(ciphertext) + decryptor.finalize()
+            
+            # Quitar padding PKCS7
+            padding_length = plaintext_padded[-1]
+            plaintext = plaintext_padded[:-padding_length].decode('utf-8')
+            
+            return {
+                'plaintext': plaintext,
+                'method': f'AES-{len(key_bytes)*8}-CBC',
+                'message': 'Descifrado exitoso'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en descifrado AES-CBC: {str(e)}")
+    
+    def encrypt_arc4(self, plaintext: str, key: str) -> Dict:
+        """
+        [⚠️ EDUCATIVO - VULNERABLE]
+        Cifrar con ARC4 (RC4) - Stream cipher.
+        
+        RC4 es vulnerable y obsoleto. Solo para demostración educativa.
+        
+        Args:
+            plaintext: Texto a cifrar
+            key: Clave de longitud variable (5-256 bytes)
+            
+        Returns:
+            Dict con ciphertext_base64, method, warning
+        """
+        try:
+            key_bytes = key.encode('utf-8')
+            plaintext_bytes = plaintext.encode('utf-8')
+            
+            cipher = Cipher(
+                algorithms.ARC4(key_bytes),
+                mode=None,
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(plaintext_bytes) + encryptor.finalize()
+            
+            return {
+                'ciphertext_base64': base64.b64encode(ciphertext).decode('utf-8'),
+                'ciphertext_hex': ciphertext.hex(),
+                'method': 'ARC4 (RC4)',
+                'warning': '⚠️ VULNERABLE - RC4 está roto, solo educativo',
+                'note': 'Stream cipher simétrico. Mismo proceso para cifrar y descifrar.'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en cifrado ARC4: {str(e)}")
+    
+    def decrypt_arc4(self, ciphertext_base64: str, key: str) -> Dict:
+        """
+        Descifrar ARC4 (mismo proceso que cifrar).
+        
+        Args:
+            ciphertext_base64: Texto cifrado en base64
+            key: Clave usada para cifrar
+            
+        Returns:
+            Dict con plaintext, method
+        """
+        try:
+            key_bytes = key.encode('utf-8')
+            ciphertext = base64.b64decode(ciphertext_base64)
+            
+            cipher = Cipher(
+                algorithms.ARC4(key_bytes),
+                mode=None,
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            plaintext = (decryptor.update(ciphertext) + decryptor.finalize()).decode('utf-8')
+            
+            return {
+                'plaintext': plaintext,
+                'method': 'ARC4 (RC4)',
+                'message': 'Descifrado exitoso'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en descifrado ARC4: {str(e)}")
+    
+    # ==================== CIFRADO HÍBRIDO (RSA + AES) ====================
+    
+    def encrypt_hybrid(self, plaintext: str) -> Dict:
+        """
+        Cifrado híbrido: RSA-OAEP para clave de sesión + AES-GCM para datos.
+        Igual que el ejemplo del profesor con PKCS1_OAEP.
+        
+        Args:
+            plaintext: Texto a cifrar
+            
+        Returns:
+            Dict con:
+                - encrypted_session_key_base64: Clave de sesión cifrada con RSA
+                - ciphertext_base64: Datos cifrados con AES
+                - nonce_base64: Nonce de AES-GCM
+                - tag_base64: Tag de autenticación AES-GCM
+        """
+        if not self.public_key:
+            raise ValueError("No hay clave pública cargada para cifrado híbrido")
+        
+        try:
+            # Generar clave de sesión AES-256 aleatoria
+            session_key = os.urandom(32)  # 256 bits
+            
+            # Cifrar la clave de sesión con RSA-OAEP (como el profesor)
+            encrypted_session_key = self.public_key.encrypt(
+                session_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            
+            # Cifrar los datos con AES-GCM (más seguro que EAX del profesor)
+            nonce = os.urandom(12)  # 96 bits recomendado para GCM
+            cipher = Cipher(
+                algorithms.AES(session_key),
+                modes.GCM(nonce),
+                backend=default_backend()
+            )
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(plaintext.encode('utf-8')) + encryptor.finalize()
+            tag = encryptor.tag
+            
+            return {
+                'encrypted_session_key_base64': base64.b64encode(encrypted_session_key).decode('utf-8'),
+                'ciphertext_base64': base64.b64encode(ciphertext).decode('utf-8'),
+                'nonce_base64': base64.b64encode(nonce).decode('utf-8'),
+                'tag_base64': base64.b64encode(tag).decode('utf-8'),
+                'method': 'Híbrido: RSA-OAEP + AES-256-GCM',
+                'note': 'Clave de sesión AES cifrada con RSA, datos cifrados con AES'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en cifrado híbrido: {str(e)}")
+    
+    def decrypt_hybrid(self, encrypted_session_key_base64: str, ciphertext_base64: str,
+                      nonce_base64: str, tag_base64: str) -> Dict:
+        """
+        Descifrado híbrido: RSA para recuperar clave de sesión + AES-GCM para datos.
+        
+        Args:
+            encrypted_session_key_base64: Clave de sesión cifrada
+            ciphertext_base64: Datos cifrados
+            nonce_base64: Nonce de AES-GCM
+            tag_base64: Tag de autenticación
+            
+        Returns:
+            Dict con plaintext, method
+        """
+        if not self.private_key:
+            raise ValueError("No hay clave privada cargada para descifrado híbrido")
+        
+        try:
+            # Descifrar la clave de sesión con RSA
+            encrypted_session_key = base64.b64decode(encrypted_session_key_base64)
+            session_key = self.private_key.decrypt(
+                encrypted_session_key,
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
+            
+            # Descifrar los datos con AES-GCM
+            ciphertext = base64.b64decode(ciphertext_base64)
+            nonce = base64.b64decode(nonce_base64)
+            tag = base64.b64decode(tag_base64)
+            
+            cipher = Cipher(
+                algorithms.AES(session_key),
+                modes.GCM(nonce, tag),
+                backend=default_backend()
+            )
+            decryptor = cipher.decryptor()
+            plaintext = (decryptor.update(ciphertext) + decryptor.finalize()).decode('utf-8')
+            
+            return {
+                'plaintext': plaintext,
+                'method': 'Híbrido: RSA-OAEP + AES-256-GCM',
+                'message': 'Descifrado híbrido exitoso'
+            }
+        except Exception as e:
+            raise ValueError(f"Error en descifrado híbrido: {str(e)}")

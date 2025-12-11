@@ -134,18 +134,22 @@ class EncryptionUI:
         self.notebook = ttk.Notebook(container)
         self.notebook.pack(fill='both', expand=True)
         
-        # Crear las 5 pestañas
+        # Crear las pestañas (RSA + Simétrico + Híbrido)
         self.tab_keys = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
         self.tab_encrypt_public = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
         self.tab_decrypt_private = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
         self.tab_encrypt_private = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
         self.tab_decrypt_public = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
+        self.tab_symmetric = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
+        self.tab_hybrid = tk.Frame(self.notebook, bg=self.colors['bg_medium'])
         
-        self.notebook.add(self.tab_keys, text='🔑 Generar Claves')
+        self.notebook.add(self.tab_keys, text='🔑 Generar Claves RSA')
         self.notebook.add(self.tab_encrypt_public, text='🔐 Cifrar (Pública) - 1d')
         self.notebook.add(self.tab_decrypt_private, text='🔓 Descifrar (Privada) - 1d')
         self.notebook.add(self.tab_encrypt_private, text='🔒 Cifrar (Privada) - 1c')
         self.notebook.add(self.tab_decrypt_public, text='✅ Verificar (Pública) - 1c')
+        self.notebook.add(self.tab_symmetric, text='🔑 Simétrico (DES/AES/ARC4)')
+        self.notebook.add(self.tab_hybrid, text='🔐🔑 Híbrido (RSA+AES)')
         
         # Crear contenido de cada tab
         self.create_keys_tab()
@@ -153,6 +157,8 @@ class EncryptionUI:
         self.create_decrypt_private_tab()
         self.create_encrypt_private_tab()
         self.create_decrypt_public_tab()
+        self.create_symmetric_tab()
+        self.create_hybrid_tab()
         
     def create_keys_tab(self):
         """Tab de generación de claves"""
@@ -1064,6 +1070,420 @@ class EncryptionUI:
     def go_back(self):
         """Regresar al home"""
         self.root.destroy()
+    
+    # ==================== TABS DE CIFRADO SIMÉTRICO ====================
+    
+    def create_symmetric_tab(self):
+        """Tab de cifrado simétrico (DES, AES, ARC4)"""
+        main = tk.Frame(self.tab_symmetric, bg=self.colors['bg_medium'])
+        main.pack(fill='both', expand=True, padx=30, pady=30)
+        
+        # Título
+        title = tk.Label(main,
+                        text="🔑 CIFRADO SIMÉTRICO",
+                        font=('Segoe UI', 14, 'bold'),
+                        bg=self.colors['bg_medium'],
+                        fg=self.colors['accent'])
+        title.pack(pady=(0, 10))
+        
+        info = tk.Label(main,
+                       text="Algoritmos: DES (ECB/CFB), AES (CBC), ARC4 - Como en los ejemplos del profesor",
+                       font=('Segoe UI', 9),
+                       bg=self.colors['bg_medium'],
+                       fg=self.colors['text_secondary'])
+        info.pack(pady=(0, 20))
+        
+        # Selector de algoritmo
+        algo_frame = tk.Frame(main, bg=self.colors['bg_light'])
+        algo_frame.pack(fill='x', pady=(0, 15))
+        
+        tk.Label(algo_frame,
+                text="Algoritmo:",
+                font=('Segoe UI', 10, 'bold'),
+                bg=self.colors['bg_light'],
+                fg=self.colors['text']).pack(side='left', padx=15, pady=10)
+        
+        self.sym_algo_var = tk.StringVar(value="AES-CBC")
+        algorithms = ['DES-ECB', 'DES-CFB', 'AES-CBC', 'ARC4']
+        for algo in algorithms:
+            tk.Radiobutton(algo_frame,
+                          text=algo,
+                          variable=self.sym_algo_var,
+                          value=algo,
+                          bg=self.colors['bg_light'],
+                          fg=self.colors['text'],
+                          selectcolor=self.colors['bg_dark'],
+                          activebackground=self.colors['bg_light'],
+                          font=('Segoe UI', 9),
+                          command=self.update_sym_key_hint).pack(side='left', padx=10)
+        
+        # Clave simétrica
+        key_label = tk.Label(main,
+                            text="🔑 Clave:",
+                            font=('Segoe UI', 10, 'bold'),
+                            bg=self.colors['bg_medium'],
+                            fg=self.colors['text'])
+        key_label.pack(anchor='w', pady=(10, 5))
+        
+        self.sym_key_entry = tk.Entry(main,
+                                      font=('Segoe UI', 10),
+                                      bg=self.colors['bg_dark'],
+                                      fg=self.colors['text'],
+                                      insertbackground=self.colors['text'],
+                                      relief='flat')
+        self.sym_key_entry.pack(fill='x', pady=(0, 5))
+        self.sym_key_entry.insert(0, 'This is a keyabc')  # 16 bytes para AES
+        
+        self.sym_key_hint = tk.Label(main,
+                                     text="AES: 16/24/32 bytes",
+                                     font=('Segoe UI', 8),
+                                     bg=self.colors['bg_medium'],
+                                     fg=self.colors['text_secondary'])
+        self.sym_key_hint.pack(anchor='w', pady=(0, 10))
+        
+        # Texto plano
+        plain_label = tk.Label(main,
+                              text="📝 Texto Plano:",
+                              font=('Segoe UI', 10, 'bold'),
+                              bg=self.colors['bg_medium'],
+                              fg=self.colors['text'])
+        plain_label.pack(anchor='w', pady=(10, 5))
+        
+        self.sym_plaintext = scrolledtext.ScrolledText(main,
+                                                       height=6,
+                                                       font=('Segoe UI', 10),
+                                                       bg=self.colors['bg_dark'],
+                                                       fg=self.colors['text'],
+                                                       insertbackground=self.colors['text'],
+                                                       relief='flat')
+        self.sym_plaintext.pack(fill='x', pady=(0, 10))
+        self.sym_plaintext.insert('1.0', 'Text Plain Test1')
+        
+        # Botones de cifrado/descifrado
+        btn_frame = tk.Frame(main, bg=self.colors['bg_medium'])
+        btn_frame.pack(fill='x', pady=10)
+        
+        tk.Button(btn_frame,
+                 text="🔐 Cifrar",
+                 font=('Segoe UI', 10, 'bold'),
+                 bg=self.colors['accent'],
+                 fg='#ffffff',
+                 activebackground=self.colors['accent_hover'],
+                 relief='flat',
+                 cursor='hand2',
+                 padx=20,
+                 pady=8,
+                 command=self.encrypt_symmetric).pack(side='left', padx=(0, 10))
+        
+        tk.Button(btn_frame,
+                 text="🔓 Descifrar",
+                 font=('Segoe UI', 10, 'bold'),
+                 bg=self.colors['bg_light'],
+                 fg=self.colors['text'],
+                 activebackground=self.colors['bg_dark'],
+                 relief='flat',
+                 cursor='hand2',
+                 padx=20,
+                 pady=8,
+                 command=self.decrypt_symmetric).pack(side='left')
+        
+        # Resultado
+        result_label = tk.Label(main,
+                               text="📤 Resultado:",
+                               font=('Segoe UI', 10, 'bold'),
+                               bg=self.colors['bg_medium'],
+                               fg=self.colors['success'])
+        result_label.pack(anchor='w', pady=(15, 5))
+        
+        self.sym_result = scrolledtext.ScrolledText(main,
+                                                    height=6,
+                                                    font=('Consolas', 9),
+                                                    bg=self.colors['bg_dark'],
+                                                    fg=self.colors['success'],
+                                                    insertbackground=self.colors['text'],
+                                                    relief='flat')
+        self.sym_result.pack(fill='both', expand=True, pady=(0, 10))
+        
+        # IV (para modos que lo requieren)
+        iv_label = tk.Label(main,
+                           text="🔢 IV (para DES-CFB/AES-CBC):",
+                           font=('Segoe UI', 9, 'bold'),
+                           bg=self.colors['bg_medium'],
+                           fg=self.colors['text_secondary'])
+        iv_label.pack(anchor='w', pady=(5, 5))
+        
+        self.sym_iv_entry = tk.Entry(main,
+                                     font=('Consolas', 9),
+                                     bg=self.colors['bg_dark'],
+                                     fg=self.colors['text_secondary'],
+                                     insertbackground=self.colors['text'],
+                                     relief='flat')
+        self.sym_iv_entry.pack(fill='x', pady=(0, 5))
+        
+        tk.Label(main,
+                text="Se generará automáticamente al cifrar. Copiar para descifrar.",
+                font=('Segoe UI', 8, 'italic'),
+                bg=self.colors['bg_medium'],
+                fg=self.colors['text_secondary']).pack(anchor='w')
+    
+    def create_hybrid_tab(self):
+        """Tab de cifrado híbrido (RSA + AES)"""
+        main = tk.Frame(self.tab_hybrid, bg=self.colors['bg_medium'])
+        main.pack(fill='both', expand=True, padx=30, pady=30)
+        
+        # Título
+        title = tk.Label(main,
+                        text="🔐🔑 CIFRADO HÍBRIDO (RSA + AES)",
+                        font=('Segoe UI', 14, 'bold'),
+                        bg=self.colors['bg_medium'],
+                        fg=self.colors['accent'])
+        title.pack(pady=(0, 10))
+        
+        info_frame = tk.Frame(main, bg=self.colors['bg_light'])
+        info_frame.pack(fill='x', pady=(0, 20))
+        
+        tk.Label(info_frame,
+                text="Como en el ejemplo del profesor: RSA-OAEP cifra clave de sesión AES, AES-GCM cifra los datos",
+                font=('Segoe UI', 9),
+                bg=self.colors['bg_light'],
+                fg=self.colors['text_secondary'],
+                wraplength=1000,
+                justify='left').pack(padx=15, pady=10)
+        
+        # Texto a cifrar
+        plain_label = tk.Label(main,
+                              text="📝 Mensaje a Cifrar:",
+                              font=('Segoe UI', 10, 'bold'),
+                              bg=self.colors['bg_medium'],
+                              fg=self.colors['text'])
+        plain_label.pack(anchor='w', pady=(10, 5))
+        
+        self.hybrid_plaintext = scrolledtext.ScrolledText(main,
+                                                         height=8,
+                                                         font=('Segoe UI', 10),
+                                                         bg=self.colors['bg_dark'],
+                                                         fg=self.colors['text'],
+                                                         insertbackground=self.colors['text'],
+                                                         relief='flat')
+        self.hybrid_plaintext.pack(fill='x', pady=(0, 10))
+        self.hybrid_plaintext.insert('1.0', 'Conozco alinenígenas')
+        
+        # Botones
+        btn_frame = tk.Frame(main, bg=self.colors['bg_medium'])
+        btn_frame.pack(fill='x', pady=10)
+        
+        tk.Button(btn_frame,
+                 text="🔐 Cifrar Híbrido",
+                 font=('Segoe UI', 11, 'bold'),
+                 bg=self.colors['accent'],
+                 fg='#ffffff',
+                 activebackground=self.colors['accent_hover'],
+                 relief='flat',
+                 cursor='hand2',
+                 padx=25,
+                 pady=10,
+                 command=self.encrypt_hybrid).pack(side='left', padx=(0, 10))
+        
+        tk.Button(btn_frame,
+                 text="🔓 Descifrar Híbrido",
+                 font=('Segoe UI', 11, 'bold'),
+                 bg=self.colors['bg_light'],
+                 fg=self.colors['text'],
+                 activebackground=self.colors['bg_dark'],
+                 relief='flat',
+                 cursor='hand2',
+                 padx=25,
+                 pady=10,
+                 command=self.decrypt_hybrid).pack(side='left')
+        
+        # Resultados
+        result_label = tk.Label(main,
+                               text="📤 Datos Cifrados:",
+                               font=('Segoe UI', 10, 'bold'),
+                               bg=self.colors['bg_medium'],
+                               fg=self.colors['success'])
+        result_label.pack(anchor='w', pady=(15, 5))
+        
+        self.hybrid_result = scrolledtext.ScrolledText(main,
+                                                       height=12,
+                                                       font=('Consolas', 8),
+                                                       bg=self.colors['bg_dark'],
+                                                       fg=self.colors['success'],
+                                                       insertbackground=self.colors['text'],
+                                                       relief='flat')
+        self.hybrid_result.pack(fill='both', expand=True)
+    
+    # ==================== MÉTODOS DE CIFRADO SIMÉTRICO ====================
+    
+    def update_sym_key_hint(self):
+        """Actualizar hint de longitud de clave según algoritmo"""
+        algo = self.sym_algo_var.get()
+        hints = {
+            'DES-ECB': 'DES: Exactamente 8 bytes',
+            'DES-CFB': 'DES: Exactamente 8 bytes',
+            'AES-CBC': 'AES: 16/24/32 bytes (AES-128/192/256)',
+            'ARC4': 'RC4: 5-256 bytes (longitud variable)'
+        }
+        self.sym_key_hint.config(text=hints.get(algo, ''))
+        
+        # Actualizar clave de ejemplo
+        examples = {
+            'DES-ECB': '01234567',
+            'DES-CFB': '01234567',
+            'AES-CBC': 'This is a keyabc',
+            'ARC4': '01234567'
+        }
+        self.sym_key_entry.delete(0, tk.END)
+        self.sym_key_entry.insert(0, examples.get(algo, ''))
+    
+    def encrypt_symmetric(self):
+        """Cifrar con algoritmo simétrico seleccionado"""
+        algo = self.sym_algo_var.get()
+        key = self.sym_key_entry.get()
+        plaintext = self.sym_plaintext.get('1.0', tk.END).strip()
+        
+        if not key or not plaintext:
+            messagebox.showwarning("Advertencia", "Ingresa clave y texto plano")
+            return
+        
+        try:
+            result = None
+            
+            if algo == 'DES-ECB':
+                result = self.logic.encrypt_des_ecb(plaintext, key)
+                output = f"🔐 Cifrado: {result['ciphertext_base64']}\n"
+                output += f"Hex: {result['ciphertext_hex']}\n"
+                output += f"\n⚠️ {result['warning']}"
+                
+            elif algo == 'DES-CFB':
+                result = self.logic.encrypt_des_cfb(plaintext, key)
+                output = f"🔐 Cifrado: {result['ciphertext_base64']}\n"
+                output += f"IV (base64): {result['iv_base64']}\n"
+                output += f"IV (hex): {result['iv_hex']}"
+                self.sym_iv_entry.delete(0, tk.END)
+                self.sym_iv_entry.insert(0, result['iv_base64'])
+                
+            elif algo == 'AES-CBC':
+                result = self.logic.encrypt_aes_cbc(plaintext, key)
+                output = f"🔐 Cifrado: {result['ciphertext_base64']}\n"
+                output += f"IV (base64): {result['iv_base64']}\n"
+                output += f"IV (hex): {result['iv_hex']}\n"
+                output += f"Método: {result['method']}"
+                self.sym_iv_entry.delete(0, tk.END)
+                self.sym_iv_entry.insert(0, result['iv_base64'])
+                
+            elif algo == 'ARC4':
+                result = self.logic.encrypt_arc4(plaintext, key)
+                output = f"🔐 Cifrado: {result['ciphertext_base64']}\n"
+                output += f"Hex: {result['ciphertext_hex']}\n"
+                output += f"\n⚠️ {result['warning']}"
+            
+            self.sym_result.delete('1.0', tk.END)
+            self.sym_result.insert('1.0', output)
+            messagebox.showinfo("Éxito", f"Cifrado {algo} exitoso")
+            
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+    
+    def decrypt_symmetric(self):
+        """Descifrar con algoritmo simétrico seleccionado"""
+        algo = self.sym_algo_var.get()
+        key = self.sym_key_entry.get()
+        ciphertext = self.sym_result.get('1.0', tk.END).strip()
+        
+        if not key or not ciphertext:
+            messagebox.showwarning("Advertencia", "Ingresa clave y texto cifrado")
+            return
+        
+        # Extraer solo el base64 del resultado
+        lines = ciphertext.split('\n')
+        cipher_b64 = lines[0].replace('🔐 Cifrado: ', '').strip()
+        
+        try:
+            result = None
+            
+            if algo == 'DES-ECB':
+                result = self.logic.decrypt_des_ecb(cipher_b64, key)
+                
+            elif algo == 'DES-CFB':
+                iv_b64 = self.sym_iv_entry.get()
+                if not iv_b64:
+                    messagebox.showwarning("Advertencia", "Ingresa el IV para descifrar")
+                    return
+                result = self.logic.decrypt_des_cfb(cipher_b64, key, iv_b64)
+                
+            elif algo == 'AES-CBC':
+                iv_b64 = self.sym_iv_entry.get()
+                if not iv_b64:
+                    messagebox.showwarning("Advertencia", "Ingresa el IV para descifrar")
+                    return
+                result = self.logic.decrypt_aes_cbc(cipher_b64, key, iv_b64)
+                
+            elif algo == 'ARC4':
+                result = self.logic.decrypt_arc4(cipher_b64, key)
+            
+            output = f"✅ Texto Descifrado:\n{result['plaintext']}\n\n"
+            output += f"Método: {result['method']}"
+            
+            self.sym_plaintext.delete('1.0', tk.END)
+            self.sym_plaintext.insert('1.0', result['plaintext'])
+            
+            messagebox.showinfo("Éxito", f"Descifrado {algo} exitoso")
+            
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+    
+    def encrypt_hybrid(self):
+        """Cifrar con método híbrido (RSA + AES)"""
+        plaintext = self.hybrid_plaintext.get('1.0', tk.END).strip()
+        
+        if not plaintext:
+            messagebox.showwarning("Advertencia", "Ingresa texto a cifrar")
+            return
+        
+        try:
+            result = self.logic.encrypt_hybrid(plaintext)
+            
+            output = "=== CIFRADO HÍBRIDO (RSA + AES) ===\n\n"
+            output += f"1️⃣ Clave de Sesión AES cifrada con RSA:\n{result['encrypted_session_key_base64']}\n\n"
+            output += f"2️⃣ Datos cifrados con AES-GCM:\n{result['ciphertext_base64']}\n\n"
+            output += f"3️⃣ Nonce:\n{result['nonce_base64']}\n\n"
+            output += f"4️⃣ Tag de Autenticación:\n{result['tag_base64']}\n\n"
+            output += f"Método: {result['method']}"
+            
+            self.hybrid_result.delete('1.0', tk.END)
+            self.hybrid_result.insert('1.0', output)
+            
+            messagebox.showinfo("Éxito", "Cifrado híbrido exitoso\n\n" + result['note'])
+            
+        except ValueError as e:
+            messagebox.showerror("Error", str(e))
+    
+    def decrypt_hybrid(self):
+        """Descifrar con método híbrido (RSA + AES)"""
+        result_text = self.hybrid_result.get('1.0', tk.END).strip()
+        
+        if not result_text or 'CIFRADO HÍBRIDO' not in result_text:
+            messagebox.showwarning("Advertencia", "Primero cifra un mensaje híbrido")
+            return
+        
+        try:
+            # Parsear el resultado
+            lines = result_text.split('\n')
+            encrypted_key = lines[2].strip()
+            ciphertext = lines[5].strip()
+            nonce = lines[8].strip()
+            tag = lines[11].strip()
+            
+            result = self.logic.decrypt_hybrid(encrypted_key, ciphertext, nonce, tag)
+            
+            self.hybrid_plaintext.delete('1.0', tk.END)
+            self.hybrid_plaintext.insert('1.0', result['plaintext'])
+            
+            messagebox.showinfo("Éxito", f"Descifrado híbrido exitoso\n\n{result['message']}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error en descifrado híbrido: {str(e)}")
 
 
 def main():
