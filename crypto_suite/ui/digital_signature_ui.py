@@ -540,6 +540,30 @@ class DigitalSignatureUI:
                           activebackground=self.colors['bg_medium'],
                           font=('Segoe UI', 10)).pack(side='left', padx=10)
         
+        # Modo textbook (educativo)
+        textbook_frame = tk.Frame(main, bg=self.colors['bg_medium'])
+        textbook_frame.pack(fill='x', pady=(0, 10))
+        
+        self.use_textbook_var = tk.BooleanVar(value=False)
+        textbook_check = tk.Checkbutton(textbook_frame,
+                                       text="⚠️ Usar RSA Textbook (Modo Educativo - INSEGURO)",
+                                       variable=self.use_textbook_var,
+                                       bg=self.colors['bg_medium'],
+                                       fg=self.colors['warning'],
+                                       selectcolor=self.colors['bg_dark'],
+                                       activebackground=self.colors['bg_medium'],
+                                       font=('Segoe UI', 10, 'bold'),
+                                       command=self.toggle_textbook_warning)
+        textbook_check.pack(side='left')
+        
+        self.textbook_warning = tk.Label(textbook_frame,
+                                         text="",
+                                         font=('Segoe UI', 9, 'italic'),
+                                         bg=self.colors['bg_medium'],
+                                         fg=self.colors['text_secondary'],
+                                         wraplength=600)
+        self.textbook_warning.pack(side='left', padx=10)
+        
         # Botón firmar
         btn_sign = tk.Button(main,
                             text="✍️ Firmar Mensaje",
@@ -606,10 +630,11 @@ class DigitalSignatureUI:
         main.pack(fill='both', expand=True, padx=30, pady=30)
         
         instructions = tk.Label(main,
-                               text="Verifica la autenticidad de un mensaje firmado",
-                               font=('Segoe UI', 11),
+                               text="Verifica la autenticidad de un mensaje firmado\n🔍 La verificación detecta automáticamente si es RSA-PSS (seguro) o RSA Textbook (educativo)",
+                               font=('Segoe UI', 10),
                                bg=self.colors['bg_medium'],
-                               fg=self.colors['text_secondary'])
+                               fg=self.colors['text_secondary'],
+                               justify='left')
         instructions.pack(pady=(0, 20))
         
         # Botón cargar clave pública
@@ -740,22 +765,48 @@ class DigitalSignatureUI:
         """Firmar mensaje usando la lógica del backend"""
         message = self.sign_message_text.get('1.0', tk.END).strip()
         hash_algorithm = self.hash_algo_var.get()
+        use_textbook = self.use_textbook_var.get()
         
         try:
-            # Llamar al backend
-            result = self.logic.sign_message(message, hash_algorithm)
+            # Llamar al backend (textbook o seguro)
+            if use_textbook:
+                result = self.logic.sign_message_textbook(message, hash_algorithm)
+                mode_info = "\n\n RSA TEXTBOOK - SOLO EDUCATIVO"
+            else:
+                result = self.logic.sign_message(message, hash_algorithm)
+                mode_info = "\n✓ RSA-PSS (Seguro para producción)"
             
             # Mostrar firma
             self.signature_text.delete('1.0', tk.END)
-            self.signature_text.insert('1.0', result['signature_base64'])
+            output = result['signature_base64']
+            
+            # Si es textbook, mostrar información adicional
+            if use_textbook and 'signature_int' in result:
+                output += f"\n\n--- Información Educativa ---"
+                output += f"\nHash (entero): {result['hash_int'][:50]}..."
+                output += f"\nFirma (entero): {result['signature_int'][:50]}..."
+            
+            self.signature_text.insert('1.0', output)
             
             messagebox.showinfo("Éxito", 
-                               f"Mensaje firmado con {hash_algorithm}")
+                               f"Mensaje firmado con {hash_algorithm}{mode_info}")
             
         except ValueError as e:
             messagebox.showwarning("Advertencia", str(e))
         except Exception as e:
             messagebox.showerror("Error", f"Error al firmar: {str(e)}")
+    
+    def toggle_textbook_warning(self):
+        """Mostrar/ocultar advertencia del modo textbook"""
+        if self.use_textbook_var.get():
+            warning_text = (
+                "RSA textbook usa exponenciación modular pura (pow). "
+                "VULNERABLE: sin padding, determinístico, no cumple estándares. "
+                "Solo para demostraciones matemáticas educativas."
+            )
+            self.textbook_warning.config(text=warning_text, fg=self.colors['error'])
+        else:
+            self.textbook_warning.config(text="")
     
     def verify_signature(self):
         """Verificar firma usando la lógica del backend"""
@@ -763,21 +814,47 @@ class DigitalSignatureUI:
         signature_b64 = self.verify_signature_text.get('1.0', tk.END).strip()
         
         try:
-            # Llamar al backend
+            # Primero intentar verificación segura (PSS)
             result = self.logic.verify_signature(message, signature_b64)
             
             if result['valid']:
                 self.verify_result_label.config(
-                    text=f"✅ FIRMA VÁLIDA (Hash: {result['hash_algorithm_used']})",
+                    text=f"✅ FIRMA VÁLIDA - RSA-PSS (Hash: {result['hash_algorithm_used']})",
                     fg=self.colors['success']
                 )
-                messagebox.showinfo("Verificación Exitosa", result['message'])
-            else:
-                self.verify_result_label.config(
-                    text="❌ FIRMA INVÁLIDA",
-                    fg=self.colors['error']
-                )
-                messagebox.showerror("Verificación Fallida", result['message'])
+                messagebox.showinfo("Verificación Exitosa", 
+                                   result['message'] + "\n✓ Método seguro (RSA-PSS)")
+                return
+            
+            # Si falló, intentar con textbook (todas las combinaciones de hash)
+            textbook_valid = False
+            for hash_algo in ['SHA256', 'SHA384', 'SHA512']:
+                try:
+                    result_tb = self.logic.verify_signature_textbook(message, signature_b64, hash_algo)
+                    if result_tb['valid']:
+                        textbook_valid = True
+                        self.verify_result_label.config(
+                            text=f"⚠️ FIRMA VÁLIDA - RSA TEXTBOOK ({hash_algo})",
+                            fg=self.colors['warning']
+                        )
+                        info_msg = (
+                            f"{result_tb['message']}\n\n"
+                            f"⚠️ Método: RSA Textbook (Educativo)\n"
+                            f"Hash original: {result_tb['hash_original'][:50]}...\n"
+                            f"Hash de firma: {result_tb['hash_from_signature'][:50]}..."
+                        )
+                        messagebox.showinfo("Verificación Exitosa (Textbook)", info_msg)
+                        return
+                except:
+                    continue
+            
+            # Si ambos métodos fallaron
+            self.verify_result_label.config(
+                text="❌ FIRMA INVÁLIDA",
+                fg=self.colors['error']
+            )
+            messagebox.showerror("Verificación Fallida", 
+                                "Firma inválida con ambos métodos (PSS y Textbook)")
             
         except ValueError as e:
             self.verify_result_label.config(
@@ -1014,6 +1091,12 @@ class DigitalSignatureUI:
                                               fg=self.colors['success'])
                 self.public_key_status.config(text="✅ Clave pública cargada",
                                              fg=self.colors['success'])
+                
+                # Limpiar selección textbook al cargar nueva clave
+                if hasattr(self, 'use_textbook_var'):
+                    self.use_textbook_var.set(False)
+                    self.toggle_textbook_warning()
+                
                 messagebox.showinfo("Éxito", f"Clave privada cargada ({result['key_size']} bits)")
             except ValueError as e:
                 messagebox.showerror("Error", str(e))
