@@ -337,7 +337,7 @@ class CryptoSuiteHome:
         version.pack(side='left', padx=(0, 20))
         
         copyright_text = tk.Label(info_frame,
-                                 text="💻 Laboratorio de Programación Segura | Universidad 2025",
+                                 text="💻 Laboratorio de Programación Segura | Universidad de Caldas 2025",
                                  font=('Segoe UI', 9),
                                  bg=self.colors['bg_dark'],
                                  fg=self.colors['text_secondary'])
