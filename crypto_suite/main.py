@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Importar UIs desde la nueva estructura
 from ui.message_digest_ui import MessageDigestUI
 from ui.digital_signature_ui import DigitalSignatureUI
+from ui.encryption_ui import EncryptionUI
 
 
 class CryptoSuiteHome:
@@ -366,13 +367,11 @@ class CryptoSuiteHome:
                 self.show_error_window("Firma Digital")
                 
         elif module_id == '1c-1d':
-            # Importar y abrir el módulo de Cifrado RSA
+            # Importar y abrir el módulo de Cifrado RSA (nueva estructura)
             try:
-                from modules.encryption_module import EncryptionModule
-                
                 # Crear nueva ventana
                 module_window = tk.Toplevel(self.root)
-                EncryptionModule(module_window)
+                EncryptionUI(module_window)
                 
             except ImportError as e:
                 print(f"Error al importar módulo: {e}")
