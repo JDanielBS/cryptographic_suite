@@ -1,0 +1,12 @@
+1. Implementar, usando libs criptográficas de Java o Python (o cualquier otro lenguaje), una suite de cifrado
+para:
+ a. Generar un Resumen Digital (Message Digest)
+ b. Generar una firma Digital (Firmar y verificar)
+ c. Cifrar y descifrar un mensaje con Clave Privada
+ d. Cifrar y descifrar un mensaje con Criptografía asimétrica de Llave Pública
+ e. Firmar y verificar un mensaje usando Criptografía de Curvas Elípticas
+
+2. Implementar un módulo que permita filtrar intentos de ataques de SQL Injection
+evitando consultas vulnerables y que incorpore alguna contramedidad para prevenir
+cadenas o caracteres anómalos en las sentencias, debe evidenciar la vulnerabilidad de inyección y la
+contramedida.

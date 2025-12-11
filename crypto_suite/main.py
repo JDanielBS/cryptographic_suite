@@ -150,23 +150,15 @@ class CryptoSuiteHome:
                 'icon': '✍️',
                 'description': 'Firma y verifica documentos usando algoritmos de firma digital (RSA, DSA)',
                 'color': self.colors['accent_green'],
-                'status': 'Próximamente'
+                'status': 'Implementado'
             },
             {
-                'id': '1c',
-                'title': 'Cifrado Simétrico',
-                'icon': '🔒',
-                'description': 'Cifra y descifra mensajes con criptografía de clave privada (AES, DES)',
-                'color': self.colors['accent_purple'],
-                'status': 'Próximamente'
-            },
-            {
-                'id': '1d',
-                'title': 'Cifrado Asimétrico',
-                'icon': '🔑',
-                'description': 'Cifrado de clave pública usando RSA y gestión de pares de claves',
+                'id': '1c-1d',
+                'title': 'Cifrado RSA',
+                'icon': '🔐',
+                'description': 'Cifrado y descifrado con clave privada y clave pública usando RSA (Punto 1c y 1d)',
                 'color': self.colors['accent_orange'],
-                'status': 'Próximamente'
+                'status': 'Implementado'
             },
             {
                 'id': '1e',
@@ -358,33 +350,62 @@ class CryptoSuiteHome:
                 
             except ImportError as e:
                 print(f"Error al importar módulo: {e}")
-                # Mostrar mensaje de error
-                error_window = tk.Toplevel(self.root)
-                error_window.title("Error")
-                error_window.geometry("400x200")
-                error_window.configure(bg=self.colors['bg_card'])
+                self.show_error_window("Message Digest")
                 
-                tk.Label(error_window,
-                        text="❌ Error al cargar el módulo",
-                        font=('Segoe UI', 14, 'bold'),
-                        bg=self.colors['bg_card'],
-                        fg='#ff4444').pack(pady=30)
+        elif module_id == '1b':
+            # Importar y abrir el módulo de Firma Digital
+            try:
+                from modules.digital_signature_module import DigitalSignatureModule
                 
-                tk.Label(error_window,
-                        text="El módulo no se encuentra disponible.",
-                        font=('Segoe UI', 10),
-                        bg=self.colors['bg_card'],
-                        fg=self.colors['text_secondary']).pack()
+                # Crear nueva ventana
+                module_window = tk.Toplevel(self.root)
+                DigitalSignatureModule(module_window)
                 
-                tk.Button(error_window,
-                         text="Cerrar",
-                         command=error_window.destroy,
-                         bg='#ff4444',
-                         fg='#ffffff',
-                         font=('Segoe UI', 10, 'bold'),
-                         relief='flat',
-                         padx=20,
-                         pady=5).pack(pady=30)
+            except ImportError as e:
+                print(f"Error al importar módulo: {e}")
+                self.show_error_window("Firma Digital")
+                
+        elif module_id == '1c-1d':
+            # Importar y abrir el módulo de Cifrado RSA
+            try:
+                from modules.encryption_module import EncryptionModule
+                
+                # Crear nueva ventana
+                module_window = tk.Toplevel(self.root)
+                EncryptionModule(module_window)
+                
+            except ImportError as e:
+                print(f"Error al importar módulo: {e}")
+                self.show_error_window("Cifrado RSA")
+    
+    def show_error_window(self, module_name):
+        """Mostrar ventana de error al cargar módulo"""
+        error_window = tk.Toplevel(self.root)
+        error_window.title("Error")
+        error_window.geometry("400x200")
+        error_window.configure(bg=self.colors['bg_card'])
+                
+        tk.Label(error_window,
+                text="❌ Error al cargar el módulo",
+                font=('Segoe UI', 14, 'bold'),
+                bg=self.colors['bg_card'],
+                fg='#ff4444').pack(pady=30)
+        
+        tk.Label(error_window,
+                text="El módulo no se encuentra disponible.",
+                font=('Segoe UI', 10),
+                bg=self.colors['bg_card'],
+                fg=self.colors['text_secondary']).pack()
+        
+        tk.Button(error_window,
+                    text="Cerrar",
+                    command=error_window.destroy,
+                    bg='#ff4444',
+                    fg='#ffffff',
+                    font=('Segoe UI', 10, 'bold'),
+                    relief='flat',
+                    padx=20,
+                    pady=5).pack(pady=30)
 
 
 def main():
